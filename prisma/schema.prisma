@@ -8,9 +8,8 @@ datasource db {
   relationMode = "prisma"
 }
 
-// Data Models
-model Account {
-  id                String  @id @unique @default(cuid())
+model account {
+  id                String  @id @unique(map: "Account_id_key")
   userId            String
   type              String
   provider          String
@@ -22,162 +21,153 @@ model Account {
   scope             String?
   id_token          String? @db.Text
   session_state     String?
-  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              user    @relation(fields: [userId], references: [id])
 
-  @@unique([provider, providerAccountId])
-  @@index([userId])
+  @@unique([provider, providerAccountId], map: "Account_provider_providerAccountId_key")
+  @@index([userId], map: "Account_userId_idx")
 }
 
-model Session {
-  id           String   @id @unique @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-}
-
-model User {
-  id            String             @id @unique @default(cuid())
-  name          String?
-  email         String?            @unique
-  phone         String?
-  branch        String?
-  year          Int?
-  username      String?            @unique
-  emailVerified DateTime?
-  image         String?
-  role          String?            @default("user")
-  bio           String?            @db.Text
-  links         String?            @db.Text
-  isMember      Boolean            @default(false)
-  isAdmin       Boolean            @default(false)
-  teamId        Int?
-  Team          Team?              @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  accounts      Account[]
-  sessions      Session[]
-  Certificate   Certificate[]
-  Registrations Registrations[]
-  Events        EventParticipant[]
-
-  @@index([teamId])
-}
-
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
-}
-
-model Members {
-  email String  @unique
-  name  String?
-  batch Int?
-}
-
-model Team {
-  id          Int    @id @unique @default(autoincrement())
-  name        String @unique
-  description String
-  Task        Task[]
-  members     User[]
-}
-
-model Task {
-  id          Int      @id @unique @default(autoincrement())
-  name        String
-  description String
-  completed   Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  teamId      Int
-  team        Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
-
-  @@index([teamId])
-}
-
-model RegistrationPayment {
-  id          Int      @id @unique @default(autoincrement())
-  userId      String
-  orderId     String   @unique
-  amount      Float
-  paid        Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  paymentData Json?
-}
-
-model Core {
-  id       Int        @id @unique @default(autoincrement())
-  name     String
-  role     Role
-  img      String
-  github   String?
-  linkedin String?
-  filter   CoreFilter
-}
-
-model Event {
-  id           Int                @id @unique @default(autoincrement())
-  name         String
-  date         DateTime
-  isAvailable  Boolean            @default(true)
-  attended     Int
-  type         EventTypes
-  images       Json?
-  organizer    String
-  description  String             @db.Text
-  amount       Int?               @default(0)
-  filter       EventFilter
-  Certificate  Certificate[]
-  Participants EventParticipant[]
-}
-
-model Certificate {
-  id      String           @id @unique @default(cuid())
-  user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+model certificate {
+  id      String           @id @unique(map: "Certificate_id_key")
   userId  String
   date    DateTime         @default(now())
-  type    CertificateTypes
-  event   Event            @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  type    certificate_type
   eventId Int
   desc    String?          @db.Text
 
-  @@index([eventId])
-  @@index([userId])
+  @@index([eventId], map: "Certificate_eventId_idx")
+  @@index([userId], map: "Certificate_userId_idx")
 }
 
-model Registrations {
-  id           Int    @id @unique @default(autoincrement())
-  User         User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId       String @unique
+model core {
+  id       Int         @id @unique(map: "Core_id_key") @default(autoincrement())
+  name     String
+  role     core_role
+  img      String
+  github   String?
+  linkedin String?
+  filter   core_filter
+}
+
+model event {
+  id          Int          @id @unique(map: "Event_id_key") @default(autoincrement())
+  name        String
+  date        DateTime
+  attended    Int
+  type        event_type
+  organizer   String
+  description String       @db.Text
+  filter      event_filter
+  images      Json?
+  amount      Int?         @default(0)
+  isAvailable Boolean      @default(true)
+}
+
+model eventparticipant {
+  eventId Int
+  userId  String
+
+  @@id([userId, eventId])
+  @@unique([userId, eventId], map: "EventParticipant_userId_eventId_key")
+  @@index([eventId], map: "EventParticipant_eventId_idx")
+  @@index([userId], map: "EventParticipant_userId_idx")
+}
+
+model members {
+  my_row_id BigInt  @id @db.UnsignedBigInt
+  email     String  @unique(map: "Members_email_key")
+  name      String?
+  batch     Int?
+}
+
+model registrationpayment {
+  id          Int      @id @unique(map: "RegistrationPayment_id_key") @default(autoincrement())
+  userId      String
+  orderId     String   @unique(map: "RegistrationPayment_orderId_key")
+  amount      Float
+  paid        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime
+  paymentData Json?
+}
+
+model registrations {
+  id           Int    @id @unique(map: "Registrations_id_key") @default(autoincrement())
   languages    Json
   skills       Json
   whyJoin      String @db.Text
   expectations String @db.Text
   yearOfReg    Int
+  userId       String @unique(map: "Registrations_userId_key")
+  user         user   @relation(fields: [userId], references: [id])
 
-  @@index([userId])
+  @@index([userId], map: "Registrations_userId_idx")
 }
 
-// Event registrations model
-model EventParticipant {
-  event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  eventId Int
-  user    User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId  String
+model session {
+  id           String   @id @unique(map: "Session_id_key")
+  sessionToken String   @unique(map: "Session_sessionToken_key")
+  userId       String
+  expires      DateTime
 
-  @@id([userId,eventId])
-  @@unique([userId,eventId])
-  @@index([userId])
-  @@index([eventId])
+  @@index([userId], map: "Session_userId_idx")
 }
 
-// Enums
-enum Role {
+model task {
+  id          Int      @id @unique(map: "Task_id_key") @default(autoincrement())
+  name        String
+  description String
+  completed   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime
+  teamId      Int
+
+  @@index([teamId], map: "Task_teamId_idx")
+}
+
+model team {
+  id          Int    @id @unique(map: "Team_id_key") @default(autoincrement())
+  name        String @unique(map: "Team_name_key")
+  description String
+}
+
+model user {
+  id            String          @id @unique(map: "User_id_key")
+  name          String?
+  email         String?         @unique(map: "User_email_key")
+  emailVerified DateTime?
+  image         String?
+  role          String?         @default("user")
+  bio           String?         @db.Text
+  links         String?         @db.Text
+  isMember      Boolean         @default(false)
+  isAdmin       Boolean         @default(false)
+  teamId        Int?
+  username      String?         @unique(map: "User_username_key")
+  branch        String?
+  phone         String?
+  year          Int?
+  account       account[]
+  registrations registrations[]
+
+  @@index([teamId], map: "User_teamId_idx")
+}
+
+model verificationtoken {
+  my_row_id  BigInt   @id @db.UnsignedBigInt
+  identifier String
+  token      String   @unique(map: "VerificationToken_token_key")
+  expires    DateTime
+
+  @@unique([identifier, token], map: "VerificationToken_identifier_token_key")
+}
+
+model websitesettings {
+  id               Int     @id @unique(map: "WebsiteSettings_id_key") @default(autoincrement())
+  registrationOpen Boolean @default(true)
+}
+
+enum core_role {
   Principal
   AssistantProfessor
   Mentor
@@ -222,16 +212,15 @@ enum Role {
   Videographer
 }
 
-enum CoreFilter {
-  Year2017to2020
-  Year2020to2021
-  Year2021to2022
-  Year2022to2023
-  Year2023to2024
-  Faculty
+enum certificate_type {
+  TeamParticipation
+  SoloParticipation
+  Winner
+  RunnerUp
+  SpecialRecognition
 }
 
-enum EventTypes {
+enum event_type {
   Workshop
   Seminar
   Gaming
@@ -244,18 +233,19 @@ enum EventTypes {
   CodingContest
 }
 
-enum EventFilter {
+enum core_filter {
   Year2017to2020
   Year2020to2021
   Year2021to2022
   Year2022to2023
   Year2023to2024
+  Faculty
 }
 
-enum CertificateTypes {
-  TeamParticipation
-  SoloParticipation
-  Winner
-  RunnerUp
-  SpecialRecognition
+enum event_filter {
+  Year2017to2020
+  Year2020to2021
+  Year2021to2022
+  Year2022to2023
+  Year2023to2024
 }

@@ -9,15 +9,20 @@ export default async function handler(
 ) {
   try {
     const paidMembersDetails = await prisma.user.findMany({
-      where: {
-        isMember: true,
+      where:{
+        registrations: {
+          some:{
+            yearOfReg: 2024
+          }
+        },
+        isMember: true
       },
-      select: {
+      select:{
         name: true,
-        email: true,
         phone: true,
-      },
-    });
+        email: true,
+      }
+    })
 
     const csvRows = [];
     csvRows.push("Name,Email,Phone,USN");
